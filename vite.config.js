@@ -9,4 +9,9 @@ export default defineConfig({
     port: process.env.PORT || 3000, // Use PORT from environment or default to 3000
     strictPort: true, // Fail if port is in use
   },
+  preview: {
+    host: '0.0.0.0',
+    port: process.env.PORT || 3000,
+    strictPort: true,
+  },
 })
