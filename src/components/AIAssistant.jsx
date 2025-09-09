@@ -1,22 +1,42 @@
 import React, { useState } from 'react';
 import { processAIQuery } from '../services/ai';
 
-const AIAssistant = ({ selectedText }) => {
+const AIAssistant = ({ selectedText, csvData }) => {
   const [query, setQuery] = useState('');
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Debug information
+  console.log('AIAssistant props:', { 
+    hasSelectedText: !!selectedText, 
+    selectedTextLength: selectedText?.length,
+    hasCsvData: !!csvData,
+    csvDataLength: csvData?.length 
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
-      const result = await processAIQuery(query, selectedText);
+      if (!csvData) {
+        throw new Error('Please upload a CSV file first');
+      }
+      console.log('Submitting query with data:', {
+        queryLength: query.length,
+        csvDataRows: csvData?.length,
+        selectedTextLength: selectedText?.length
+      });
+      const result = await processAIQuery(query, selectedText, csvData);
       setResponse(result);
     } catch (error) {
-      console.error('Error:', error);
-      setResponse('Sorry, something went wrong.');
+      console.error('Error in handleSubmit:', error);
+      setError(error.message);
+      setResponse(`Error: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -39,7 +59,12 @@ const AIAssistant = ({ selectedText }) => {
           {loading ? 'Processing...' : 'Ask AI'}
         </button>
       </form>
-      {response && (
+      {error && (
+        <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md">
+          <p>{error}</p>
+        </div>
+      )}
+      {response && !error && (
         <div className="mt-4 p-3 bg-gray-50 rounded-md">
           <p>{response}</p>
         </div>
