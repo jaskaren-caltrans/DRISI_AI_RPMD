@@ -1,13 +1,37 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Papa from 'papaparse'
 import './App.css'
+import AIAssistant from './components/AIAssistant'
 
 function App() {
   const [csvData, setCsvData] = useState(null)
   const [query, setQuery] = useState('')
-  const [filteredData, setFilteredData] = useState([])
+  const [filteredData,              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+      
+      {/* AI Assistant */}
+      <AIAssistant selectedText={selectedText} />
+    </div>
+  )teredData] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [isDark, setIsDark] = useState(false)
+  const [selectedText, setSelectedText] = useState('')
+
+  useEffect(() => {
+    const handleSelection = () => {
+      const selection = window.getSelection();
+      const text = selection.toString().trim();
+      if (text) {
+        setSelectedText(text);
+      }
+    };
+
+    document.addEventListener('mouseup', handleSelection);
+    return () => document.removeEventListener('mouseup', handleSelection);
+  }, []);
 
   const toggleTheme = () => {
     setIsDark(prev => {
