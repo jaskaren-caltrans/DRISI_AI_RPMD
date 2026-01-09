@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { processAIQuery } from '../services/ai';
 
-const AIAssistant = ({ selectedText, csvData }) => {
+const AIAssistant = ({ selectedText, csvData, isMainInterface = false }) => {
   const [query, setQuery] = useState('');
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
@@ -92,17 +92,75 @@ const AIAssistant = ({ selectedText, csvData }) => {
     );
   };
 
-  return (
-    <div className="fixed bottom-4 right-4 w-[28rem] bg-white shadow-xl rounded-lg p-4 border border-gray-200 max-h-[80vh] overflow-y-auto">
-      <div className="flex justify-between items-center mb-4 sticky top-0 bg-white z-10">
-        <h2 className="text-lg font-semibold text-gray-700">AI Assistant</h2>
+  return isMainInterface ? (
+    <div className="w-full">
+      <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="relative">
+            <textarea
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Ask about your data... (e.g., 'What is the average budget?' or 'Group by manager')"
+              className="w-full p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              rows="4"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="absolute right-3 bottom-3 bg-blue-500 text-white px-6 py-2 rounded-md text-sm hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+            >
+              {loading ? 'Analyzing...' : 'Ask AI'}
+            </button>
+          </div>
+        </form>
+
+        <div className="flex space-x-2 justify-center">
+          <button
+            onClick={() => setActiveTab('enhanced')}
+            className={`px-4 py-2 text-sm rounded-md font-medium ${
+              activeTab === 'enhanced'
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+            }`}
+          >
+            Enhanced View
+          </button>
+          <button
+            onClick={() => setActiveTab('classic')}
+            className={`px-4 py-2 text-sm rounded-md font-medium ${
+              activeTab === 'classic'
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+            }`}
+          >
+            Text View
+          </button>
+        </div>
+
+        {error && (
+          <div className="p-4 bg-red-50 text-red-700 rounded-md dark:bg-red-900/30 dark:text-red-200">
+            <p className="text-sm">{error}</p>
+          </div>
+        )}
+
+        {response && !error && (
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+            {activeTab === 'enhanced' ? renderEnhancedView() : renderClassicView()}
+          </div>
+        )}
+      </div>
+    </div>
+  ) : (
+    <div className="fixed bottom-4 right-4 w-[28rem] bg-white shadow-xl rounded-lg p-4 border border-gray-200 max-h-[80vh] overflow-y-auto dark:bg-gray-800 dark:border-gray-700">
+      <div className="flex justify-between items-center mb-4 sticky top-0 bg-white dark:bg-gray-800 z-10">
+        <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300">AI Assistant</h2>
         <div className="flex space-x-2">
           <button
             onClick={() => setActiveTab('enhanced')}
             className={`px-3 py-1 text-sm rounded-md ${
               activeTab === 'enhanced'
                 ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
             }`}
           >
             Enhanced
@@ -112,7 +170,7 @@ const AIAssistant = ({ selectedText, csvData }) => {
             className={`px-3 py-1 text-sm rounded-md ${
               activeTab === 'classic'
                 ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
             }`}
           >
             Classic
@@ -126,7 +184,7 @@ const AIAssistant = ({ selectedText, csvData }) => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={selectedText ? "Ask about the selected text..." : "Ask about the data..."}
-            className="w-full p-3 border rounded-lg pr-24 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-3 border rounded-lg pr-24 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             rows="3"
           />
           <button
@@ -140,7 +198,7 @@ const AIAssistant = ({ selectedText, csvData }) => {
       </form>
 
       {error && (
-        <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md">
+        <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md dark:bg-red-900/30 dark:text-red-200">
           <p className="text-sm">{error}</p>
         </div>
       )}
@@ -157,11 +215,13 @@ const AIAssistant = ({ selectedText, csvData }) => {
 AIAssistant.propTypes = {
   selectedText: PropTypes.string,
   csvData: PropTypes.arrayOf(PropTypes.object),
+  isMainInterface: PropTypes.bool,
 };
 
 AIAssistant.defaultProps = {
   selectedText: '',
   csvData: null,
+  isMainInterface: false,
 };
 
 export default AIAssistant;

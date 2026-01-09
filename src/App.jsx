@@ -3,14 +3,11 @@ import Papa from 'papaparse'
 import './App.css'
 import AIAssistant from './components/AIAssistant'
 import FileUploader from './components/FileUploader'
-import QueryInput from './components/QueryInput'
 import DataTable from './components/DataTable'
 
 function App() {
   const [csvData, setCsvData] = useState(null)
-  const [query, setQuery] = useState('')
   const [filteredData, setFilteredData] = useState([])
-  const [isLoading, setIsLoading] = useState(false)
   const [isDark, setIsDark] = useState(false)
   const [selectedText, setSelectedText] = useState('')
 
@@ -26,6 +23,16 @@ function App() {
     document.addEventListener('mouseup', handleSelection)
     return () => document.removeEventListener('mouseup', handleSelection)
   }, [])
+
+  const toggleTheme = () => {
+    setIsDark(prev => {
+      const next = !prev
+      const root = document.documentElement
+      if (next) root.classList.add('dark')
+      else root.classList.remove('dark')
+      return next
+    })
+  }
 
   const handleExportCSV = () => {
     if (filteredData.length === 0) {
@@ -89,60 +96,6 @@ function App() {
     }
   }
 
-  const handleQuerySubmit = () => {
-    if (!csvData || !query.trim()) {
-      alert('Please upload a CSV file and enter a query.')
-      return
-    }
-
-    setIsLoading(true)
-    const queryLower = query.toLowerCase()
-    
-    const filtered = csvData.filter(row => {
-      const queryWords = queryLower.split(' ').filter(word => word.length > 0)
-      
-      if (queryWords.length === 2) {
-        const [firstWord, secondWord] = queryWords
-        const possibleCombinations = [
-          { value: firstWord, columnName: secondWord },
-          { value: secondWord, columnName: firstWord }
-        ]
-        
-        for (const combo of possibleCombinations) {
-          const columnKey = Object.keys(row).find(key => 
-            key.toLowerCase().includes(combo.columnName.toLowerCase())
-          )
-          
-          if (columnKey) {
-            const columnValue = row[columnKey]
-            if (columnValue && columnValue.toString().toLowerCase().includes(combo.value.toLowerCase())) {
-              return true
-            }
-          }
-        }
-        return false
-      }
-      
-      const hasMatch = Object.values(row).some(value => 
-        value && value.toString().toLowerCase().includes(queryLower)
-      )
-      
-      if (queryWords.length > 1) {
-        const allWordsFound = queryWords.every(word => 
-          Object.values(row).some(value => 
-            value && value.toString().toLowerCase().includes(word)
-          )
-        )
-        if (allWordsFound) return true
-      }
-      
-      return hasMatch
-    })
-    
-    setFilteredData(filtered)
-    setIsLoading(false)
-  }
-
   return (
     <div className="min-h-screen bg-[#F5F6F7] text-gray-800 dark:bg-[#0B1320] dark:text-gray-100">
       <div className="bg-[#0055A4] text-white">
@@ -181,19 +134,6 @@ function App() {
                 <>
                   <div className="h-px bg-gray-200/80 dark:bg-gray-700/50" />
                   
-                  <div>
-                    <h3 className="subsection-title">Enter Query</h3>
-                    <QueryInput
-                      value={query}
-                      onChange={setQuery}
-                      onSubmit={handleQuerySubmit}
-                      isLoading={isLoading}
-                      disabled={!csvData || !query.trim()}
-                    />
-                  </div>
-                  
-                  <div className="h-px bg-gray-200/80 dark:bg-gray-700/50" />
-                  
                   {filteredData.length > 0 && (
                     <DataTable data={filteredData} onExport={handleExportCSV} />
                   )}
@@ -204,8 +144,15 @@ function App() {
         </section>
       </main>
       
-      {/* AI Assistant */}
-      <AIAssistant selectedText={selectedText} csvData={csvData} />
+      {/* AI Assistant - Main Query Interface */}
+      {csvData && csvData.length > 0 && (
+        <section className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 md:p-8 dark:bg-gray-800 dark:border-gray-700">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">Ask AI Assistant</h2>
+            <AIAssistant selectedText={selectedText} csvData={csvData} isMainInterface={true} />
+          </div>
+        </section>
+      )}
     </div>
   )
 }
