@@ -134,9 +134,7 @@ function App() {
                 <>
                   <div className="h-px bg-gray-200/80 dark:bg-gray-700/50" />
                   
-                  {filteredData.length > 0 && (
-                    <DataTable data={filteredData} onExport={handleExportCSV} />
-                  )}
+                  <DataTable data={filteredData.length > 0 ? filteredData : csvData} onExport={handleExportCSV} />
                 </>
               )}
             </div>
