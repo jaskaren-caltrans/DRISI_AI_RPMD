@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react'
 import Papa from 'papaparse'
 import './App.css'
 import AIAssistant from './components/AIAssistant'
+import FileUploader from './components/FileUploader'
+import QueryInput from './components/QueryInput'
+import DataTable from './components/DataTable'
 
 function App() {
   const [csvData, setCsvData] = useState(null)
@@ -24,14 +27,33 @@ function App() {
     return () => document.removeEventListener('mouseup', handleSelection)
   }, [])
 
-  const toggleTheme = () => {
-    setIsDark(prev => {
-      const next = !prev
-      const root = document.documentElement
-      if (next) root.classList.add('dark')
-      else root.classList.remove('dark')
-      return next
-    })
+  const handleExportCSV = () => {
+    if (filteredData.length === 0) {
+      alert('No data to export. Please filter data first.');
+      return;
+    }
+
+    const headers = Object.keys(filteredData[0]);
+    const csvContent = [
+      headers.join(','),
+      ...filteredData.map(row => 
+        headers.map(header => {
+          const value = row[header];
+          // Escape quotes and wrap in quotes if contains comma
+          if (value && (value.toString().includes(',') || value.toString().includes('"'))) {
+            return `"${value.toString().replace(/"/g, '""')}"`;
+          }
+          return value || '';
+        }).join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `filtered-data-${new Date().toISOString().slice(0, 10)}.csv`);
+    link.click();
   }
 
   const handleFileUpload = (event) => {
@@ -40,6 +62,7 @@ function App() {
       Papa.parse(file, {
         header: true,
         complete: (results) => {
+          console.log('Parsing CSV results:', results);
           const cleanData = results.data.filter(row => {
             if (!row || Object.keys(row).length === 0) return false
             const hasData = Object.values(row).some(value => 
@@ -148,99 +171,33 @@ function App() {
         <section>
           <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 md:p-8 dark:bg-gray-800 dark:border-gray-700">
             <div className="space-y-8">
-              <div>
-                <h3 className="subsection-title">Upload CSV File</h3>
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileUpload}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
-                {csvData && (
-                  <p className="text-sm text-green-600 mt-2 dark:text-green-400">
-                    ✓ CSV file loaded with {csvData.length} rows
-                  </p>
-                )}
-              </div>
-              
-              <div className="h-px bg-gray-200/80 dark:bg-gray-700/50" />
+              <FileUploader 
+                onUpload={handleFileUpload} 
+                data={csvData}
+                columns={csvData ? Object.keys(csvData[0]) : []}
+              />
               
               {csvData && csvData.length > 0 && (
-                <div>
-                  <h3 className="subsection-title">Available Columns</h3>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 dark:bg-blue-900/30 dark:border-blue-800">
-                    <p className="text-sm text-blue-800 mb-3 dark:text-blue-200">
-                      Use these column names in your queries (partial matching supported):
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.keys(csvData[0]).map((header, index) => (
-                        <span
-                          key={index}
-                          className="inline-block bg-blue-100 text-blue-800 text-xs font-medium px-3 py-1 rounded-full border border-blue-200 dark:bg-blue-800 dark:text-blue-200 dark:border-blue-700"
-                        >
-                          {header}
-                        </span>
-                      ))}
-                    </div>
-                    <p className="text-xs text-blue-600 mt-3 dark:text-blue-300">
-                      💡 Tip: You can use partial column names. For example, "manager" will match "Project Manager" or "Team Manager"
-                    </p>
+                <>
+                  <div className="h-px bg-gray-200/80 dark:bg-gray-700/50" />
+                  
+                  <div>
+                    <h3 className="subsection-title">Enter Query</h3>
+                    <QueryInput
+                      value={query}
+                      onChange={setQuery}
+                      onSubmit={handleQuerySubmit}
+                      isLoading={isLoading}
+                      disabled={!csvData || !query.trim()}
+                    />
                   </div>
-                </div>
-              )}
-              
-              <div className="h-px bg-gray-200/80 dark:bg-gray-700/50" />
-              
-              <div>
-                <h3 className="subsection-title">Enter Query</h3>
-                <div className="flex gap-4">
-                  <textarea
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Enter your query (e.g., 'good status between 2024-01-01 and 2024-02-01')"
-                    className="flex-1 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    rows="3"
-                  />
-                  <button
-                    onClick={handleQuerySubmit}
-                    disabled={!csvData || !query.trim() || isLoading}
-                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isLoading ? 'Processing...' : 'Filter Data'}
-                  </button>
-                </div>
-              </div>
-              
-              <div className="h-px bg-gray-200/80 dark:bg-gray-700/50" />
-              
-              {filteredData.length > 0 && (
-                <div>
-                  <h3 className="subsection-title">Filtered Results ({filteredData.length} rows)</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full bg-white border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700">
-                      <thead className="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                          {Object.keys(filteredData[0] || {}).map((header) => (
-                            <th key={header} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b dark:text-gray-300 dark:border-gray-600">
-                              {header}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {filteredData.map((row, index) => (
-                          <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                            {Object.values(row).map((value, cellIndex) => (
-                              <td key={cellIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                                {value || ''}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                  
+                  <div className="h-px bg-gray-200/80 dark:bg-gray-700/50" />
+                  
+                  {filteredData.length > 0 && (
+                    <DataTable data={filteredData} onExport={handleExportCSV} />
+                  )}
+                </>
               )}
             </div>
           </div>
